@@ -1,0 +1,10 @@
+[project]
+name = "extract-photos-locations"
+version = "0.1.0"
+description = "Will extract the geo info for a set of photos for a given date range"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "osxphotos",
+  "folium"
+]
