@@ -1,6 +1,6 @@
 # from osxphotos import PhotoInfo
 import osxphotos
-# import folium
+import folium
 import argparse
 from datetime import datetime
 import pytz
@@ -25,29 +25,54 @@ def main():
     matching_photos = []
 
     for p in photos:
-        if start_date <= p.date <= end_date:
+        if start_date <= p.date <= end_date and p.latitude is not None and p.longitude is not None:
             matching_photos.append(p)
 
     # Sort the matching photos by date
     matching_photos.sort(key=lambda p: p.date)
 
     for p in matching_photos:
-        print(f"{p.date}, {p.title}, {p.keywords}, {p.persons}, {p.latitude}, {p.longitude}")
+        formatted_date = p.date.strftime("%Y-%m-%d-%H:%M")
+        print(f"{formatted_date}, {p.uuid}, {p.latitude}, {p.longitude}")
 
     print(f"Found {len(matching_photos)} photos")
     
-    # photos = [p for p in photosdb.photos if p.date >= args.start_date and p.date <= args.end_date]
-    # # photos = sorted([p for p in photos if p.selfie], key=lambda p: p.date)
+    # Calculate the center of the map
+    if matching_photos:
+        min_lat = min(p.latitude for p in matching_photos)
+        max_lat = max(p.latitude for p in matching_photos)
+        min_lon = min(p.longitude for p in matching_photos)
+        max_lon = max(p.longitude for p in matching_photos)
 
-    # # create a map
-    # m = folium.Map(location=[45.5236, -122.6750], zoom_start=15)
+        center_lat = (min_lat + max_lat) / 2
+        center_lon = (min_lon + max_lon) / 2
 
-    # # add the photos to the map
-    # for photo in photos:
-    #     folium.Marker(location=[photo.latitude, photo.longitude], popup=photo.title).add_to(m)
+        # Calculate the zoom level based on the bounding box size
+        lat_diff = max_lat - min_lat
+        lon_diff = max_lon - min_lon
+        max_diff = max(lat_diff, lon_diff)
 
-    # # save the map to an HTML file
-    # m.save("map.html")
+        # Determine zoom level: smaller max_diff means a higher zoom level
+        if max_diff < 0.01:
+            zoom_level = 13
+        elif max_diff < 0.1:
+            zoom_level = 11
+        elif max_diff < 1:
+            zoom_level = 8
+        else:
+            zoom_level = 6
+
+        # Create a map centered around the calculated center
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles='OpenStreetMap')
+
+        # Add the photos to the map
+        for p in matching_photos:
+            folium.Marker(location=[p.latitude, p.longitude], popup=p.title).add_to(m)
+
+        # Save the map to an HTML file
+        m.save("map.html")
+    else:
+        print("No matching photos found with location data.")
 
 if __name__ == "__main__":
     main()

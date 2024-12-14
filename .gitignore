@@ -17,3 +17,5 @@ ENV/
 .vscode/
 *.swp
 .DS_Store 
+
+map.html
