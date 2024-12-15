@@ -20,5 +20,12 @@ You need to give the terminal access to the photos database.
 ## Usage
 
 ```bash
+source .venv/bin/activate
 python extract_geo.py --start-date 2024-01-01 --end-date 2024-01-31
 ```
+
+## Output
+
+- trip.geojson
+- trip.json
+- map.html
