@@ -21,8 +21,6 @@ def get_desired_photos(start_date, end_date):
         if start_date <= p.date <= end_date and p.latitude is not None and p.longitude is not None:
             matching_photos.append(p)
 
-    print(f"Found {len(matching_photos)} photos")
-
     # Sort the matching photos by date
     matching_photos.sort(key=lambda p: p.date)
 
@@ -65,18 +63,17 @@ def generate_json(photos):
 
 
 def build_map(photos):
-
     if not photos:
         print("No photos found")
         return
 
-    # calculate the bounding box of all the points
+    # Calculate the bounding box of all the points
     min_lat = min(p.latitude for p in photos)
     max_lat = max(p.latitude for p in photos)
     min_lon = min(p.longitude for p in photos)
     max_lon = max(p.longitude for p in photos)
 
-    # calculate the center of the bounding box
+    # Calculate the center of the bounding box
     center_lat = (min_lat + max_lat) / 2
     center_lon = (min_lon + max_lon) / 2
 
@@ -98,9 +95,12 @@ def build_map(photos):
     # Create a map centered around the calculated center
     m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles='OpenStreetMap')
 
-    # Add the photos to the map
-    for p in photos:
-        folium.Marker(location=[p.latitude, p.longitude], popup=p.title).add_to(m)
+    # Add the line between the photo locations
+    line_coordinates = [(p.latitude, p.longitude) for p in photos]
+    folium.PolyLine(line_coordinates, color="red", weight=5, opacity=0.8).add_to(m)
+
+    # for p in photos:
+    #     folium.Marker(location=[p.latitude, p.longitude], popup=p.title).add_to(m)
 
     # Save the map to an HTML file
     m.save(MAP_FILENAME)
