@@ -4,6 +4,12 @@ from datetime import datetime
 import pytz
 import geojson
 import folium
+import json
+
+# const that is filename
+GEOJSON_FILENAME = "trip.geojson"
+MAP_FILENAME = "map.html"
+JSON_FILENAME = "trip.json"
 
 def get_desired_photos(start_date, end_date):
     photosdb = osxphotos.PhotosDB()
@@ -40,8 +46,22 @@ def generate_geojson(photos):
     # Create a FeatureCollection
     feature_collection = geojson.FeatureCollection([feature])
 
-    with open('trip.geojson', 'w') as f:
+    with open(GEOJSON_FILENAME, 'w') as f:
         geojson.dump(feature_collection, f)
+
+
+def generate_json(photos):
+    json_data = []
+    for p in photos:
+        json_data.append({
+            "date": p.date.strftime("%Y-%m-%d-%H:%M"),
+            "city": p.place.address.city,
+            "country": p.place.country_code,
+            "latitude": p.latitude,
+            "longitude": p.longitude
+        })
+    with open(JSON_FILENAME, 'w') as f:
+        json.dump(json_data, f)
 
 
 def build_map(photos):
@@ -83,7 +103,7 @@ def build_map(photos):
         folium.Marker(location=[p.latitude, p.longitude], popup=p.title).add_to(m)
 
     # Save the map to an HTML file
-    m.save("map.html")
+    m.save(MAP_FILENAME)
 
 
 def main():
@@ -99,15 +119,15 @@ def main():
 
     photos = get_desired_photos(start_date, end_date)
     
-
-    for p in photos:
-        formatted_date = p.date.strftime("%Y-%m-%d-%H:%M")
-        print(f"{formatted_date}, {p.uuid}, {p.latitude}, {p.longitude}")
+    # for p in photos:
+    #     formatted_date = p.date.strftime("%Y-%m-%d-%H:%M")
+    #     print(f"{formatted_date}, {p.place.address.city},{p.place.country_code}, {p.latitude}, {p.longitude}")
 
     print(f"Found {len(photos)} photos")
 
     generate_geojson(photos)
-
+    generate_json(photos)
+ 
     build_map(photos)
 
 
