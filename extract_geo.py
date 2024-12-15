@@ -61,56 +61,67 @@ def generate_json(photos):
     with open(JSON_FILENAME, 'w') as f:
         json.dump(json_data, f)
 
+def generate_route_for_day(last_date, locations_visited_on_day):
+    formatted_date = last_date.strftime('%Y-%m-%d')
+    daily_route = f"{formatted_date}: "
+    for j, location in enumerate(locations_visited_on_day):
+        if j == 0:
+            daily_route += f"{location["city"]}, {location["country"]}"
+        else:
+            daily_route += f" to {location["city"]}, {location["country"]}"
+    return daily_route
+
 # go through the photos and generate the route and the list of countries visited
 def generate_route(photos):
     
     last_date = None
     last_country = None
     last_city = None
-    
-    # build a list of when the city or country chnanes
-    location_changes = []
+    trip_route = []
+    country_list = []
+
+    # build a list of when the city or country changes
+    locations_visited = []
     num_photos = len(photos)
     for i, p in enumerate(photos):
-        if last_country != p.place.country_code:
-            location_changes.append({
-                "date": p.date,
-                "city": p.place.address.city,
-                "country": p.place.country_code
-            })
-        elif last_city != p.place.address.city:
-            location_changes.append({
+        # see if location for this picture is different from the last one
+        if (last_country != p.place.country_code) or (last_city != p.place.address.city):
+            locations_visited.append({
                 "date": p.date,
                 "city": p.place.address.city,
                 "country": p.place.country_code
             })
 
-        # update the last city and country
+        # update the last city and country user was in
         last_date = p.date
         last_city = p.place.address.city
         last_country = p.place.country_code
 
-    # keep track of the countries visited
-    country_list = []
-    if p.place.country_code not in country_list:
-        country_list.append(p.place.country_code)
+        # keep track of the countries visited
+        if p.place.country_code not in country_list:
+            country_list.append(p.place.country_code)
 
-    # create the route from location changes
-    route = []
-    num_changes = len(location_changes)
-    for i, location_change in enumerate(location_changes):
-        formatted_date = location_change["date"].strftime('%Y-%m-%d')
-        if i == 0:
-            message = f"{formatted_date}: started in {location_change["city"]}, {location_change["country"]}"
-            route.append(message)
-        elif i == num_changes - 1:
-            message = f"{formatted_date}: ended in {location_change["city"]}, {location_change["country"]}"
-            route.append(message)
+    # now group locations by date
+    locations_visited_on_day = []
+    last_date = locations_visited[0]["date"]
+    for i, current_location in enumerate(locations_visited):
+        if (current_location["date"].year == last_date.year and
+            current_location["date"].month == last_date.month and
+            current_location["date"].day == last_date.day):            
+            locations_visited_on_day.append(current_location)
         else:
-            message = f"{formatted_date}: traveled to {location_change["city"]}, {location_change["country"]}"
-            route.append(message)
-    
-    return route, country_list
+            # so have all locations for the last day
+            trip_route.append(generate_route_for_day(last_date, locations_visited_on_day))
+            locations_visited_on_day.clear()
+            locations_visited_on_day.append(current_location)
+            last_date = current_location["date"]
+
+    # see if last day is not empty
+    if len(locations_visited_on_day) > 0:
+        trip_route.append(generate_route_for_day(last_date, locations_visited_on_day))
+        locations_visited_on_day = []
+
+    return trip_route, country_list
 
 
 def build_map(photos):
