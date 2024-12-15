@@ -5,6 +5,7 @@ import pytz
 import geojson
 import folium
 import json
+import logging
 
 # const that is filename
 GEOJSON_FILENAME = "trip.geojson"
@@ -72,7 +73,7 @@ def generate_route_for_day(last_date, locations_visited_on_day):
     return daily_route
 
 # go through the photos and generate the route and the list of countries visited
-def generate_route(photos):
+def generate_route(photos, debug_mode=False):
     
     last_date = None
     last_country = None
@@ -100,6 +101,9 @@ def generate_route(photos):
         # keep track of the countries visited
         if p.place.country_code not in country_list:
             country_list.append(p.place.country_code)
+
+    if debug_mode:
+        print(locations_visited)
 
     # now group locations by date
     locations_visited_on_day = []
@@ -171,7 +175,16 @@ def main():
     parser = argparse.ArgumentParser(description="Extract photos within a date range.")
     parser.add_argument('--start-date', type=str, required=True, help='Start date in YYYY-MM-DD format')
     parser.add_argument('--end-date', type=str, required=True, help='End date in YYYY-MM-DD format')
+    parser.add_argument('--debug', action='store_true', help='Enable debug output')
     args = parser.parse_args()
+
+    # Set up logging
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    logging.debug("Debug mode is enabled")
 
     # Convert start_date and end_date to timezone-aware datetime objects
     local_tz = pytz.timezone("America/Toronto")  # Replace with your local timezone
@@ -186,13 +199,13 @@ def main():
 
     print(f"Found {len(photos)} photos")
 
-    # generate_geojson(photos)
-    # generate_json(photos)
-    route, country_list = generate_route(photos)
+    generate_geojson(photos)
+    generate_json(photos)
+    route, country_list = generate_route(photos, debug_mode=args.debug)
     print("countries visited: ", country_list)
     for segment in route:
         print(segment)
-    # build_map(photos)
+    build_map(photos)
 
 
 if __name__ == "__main__":
