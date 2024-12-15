@@ -61,6 +61,57 @@ def generate_json(photos):
     with open(JSON_FILENAME, 'w') as f:
         json.dump(json_data, f)
 
+# go through the photos and generate the route and the list of countries visited
+def generate_route(photos):
+    
+    last_date = None
+    last_country = None
+    last_city = None
+    
+    # build a list of when the city or country chnanes
+    location_changes = []
+    num_photos = len(photos)
+    for i, p in enumerate(photos):
+        if last_country != p.place.country_code:
+            location_changes.append({
+                "date": p.date,
+                "city": p.place.address.city,
+                "country": p.place.country_code
+            })
+        elif last_city != p.place.address.city:
+            location_changes.append({
+                "date": p.date,
+                "city": p.place.address.city,
+                "country": p.place.country_code
+            })
+
+        # update the last city and country
+        last_date = p.date
+        last_city = p.place.address.city
+        last_country = p.place.country_code
+
+    # keep track of the countries visited
+    country_list = []
+    if p.place.country_code not in country_list:
+        country_list.append(p.place.country_code)
+
+    # create the route from location changes
+    route = []
+    num_changes = len(location_changes)
+    for i, location_change in enumerate(location_changes):
+        formatted_date = location_change["date"].strftime('%Y-%m-%d')
+        if i == 0:
+            message = f"{formatted_date}: started in {location_change["city"]}, {location_change["country"]}"
+            route.append(message)
+        elif i == num_changes - 1:
+            message = f"{formatted_date}: ended in {location_change["city"]}, {location_change["country"]}"
+            route.append(message)
+        else:
+            message = f"{formatted_date}: traveled to {location_change["city"]}, {location_change["country"]}"
+            route.append(message)
+    
+    return route, country_list
+
 
 def build_map(photos):
     if not photos:
@@ -105,7 +156,6 @@ def build_map(photos):
     # Save the map to an HTML file
     m.save(MAP_FILENAME)
 
-
 def main():
     parser = argparse.ArgumentParser(description="Extract photos within a date range.")
     parser.add_argument('--start-date', type=str, required=True, help='Start date in YYYY-MM-DD format')
@@ -125,10 +175,13 @@ def main():
 
     print(f"Found {len(photos)} photos")
 
-    generate_geojson(photos)
-    generate_json(photos)
- 
-    build_map(photos)
+    # generate_geojson(photos)
+    # generate_json(photos)
+    route, country_list = generate_route(photos)
+    print("countries visited: ", country_list)
+    for segment in route:
+        print(segment)
+    # build_map(photos)
 
 
 if __name__ == "__main__":
