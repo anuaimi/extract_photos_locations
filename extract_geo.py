@@ -61,6 +61,68 @@ def generate_json(photos):
     with open(JSON_FILENAME, 'w') as f:
         json.dump(json_data, f)
 
+def generate_route_for_day(last_date, locations_visited_on_day):
+    formatted_date = last_date.strftime('%Y-%m-%d')
+    daily_route = f"{formatted_date}: "
+    for j, location in enumerate(locations_visited_on_day):
+        if j == 0:
+            daily_route += f"{location["city"]}, {location["country"]}"
+        else:
+            daily_route += f" to {location["city"]}, {location["country"]}"
+    return daily_route
+
+# go through the photos and generate the route and the list of countries visited
+def generate_route(photos):
+    
+    last_date = None
+    last_country = None
+    last_city = None
+    trip_route = []
+    country_list = []
+
+    # build a list of when the city or country changes
+    locations_visited = []
+    num_photos = len(photos)
+    for i, p in enumerate(photos):
+        # see if location for this picture is different from the last one
+        if (last_country != p.place.country_code) or (last_city != p.place.address.city):
+            locations_visited.append({
+                "date": p.date,
+                "city": p.place.address.city,
+                "country": p.place.country_code
+            })
+
+        # update the last city and country user was in
+        last_date = p.date
+        last_city = p.place.address.city
+        last_country = p.place.country_code
+
+        # keep track of the countries visited
+        if p.place.country_code not in country_list:
+            country_list.append(p.place.country_code)
+
+    # now group locations by date
+    locations_visited_on_day = []
+    last_date = locations_visited[0]["date"]
+    for i, current_location in enumerate(locations_visited):
+        if (current_location["date"].year == last_date.year and
+            current_location["date"].month == last_date.month and
+            current_location["date"].day == last_date.day):            
+            locations_visited_on_day.append(current_location)
+        else:
+            # so have all locations for the last day
+            trip_route.append(generate_route_for_day(last_date, locations_visited_on_day))
+            locations_visited_on_day.clear()
+            locations_visited_on_day.append(current_location)
+            last_date = current_location["date"]
+
+    # see if last day is not empty
+    if len(locations_visited_on_day) > 0:
+        trip_route.append(generate_route_for_day(last_date, locations_visited_on_day))
+        locations_visited_on_day = []
+
+    return trip_route, country_list
+
 
 def build_map(photos):
     if not photos:
@@ -105,7 +167,6 @@ def build_map(photos):
     # Save the map to an HTML file
     m.save(MAP_FILENAME)
 
-
 def main():
     parser = argparse.ArgumentParser(description="Extract photos within a date range.")
     parser.add_argument('--start-date', type=str, required=True, help='Start date in YYYY-MM-DD format')
@@ -125,10 +186,13 @@ def main():
 
     print(f"Found {len(photos)} photos")
 
-    generate_geojson(photos)
-    generate_json(photos)
- 
-    build_map(photos)
+    # generate_geojson(photos)
+    # generate_json(photos)
+    route, country_list = generate_route(photos)
+    print("countries visited: ", country_list)
+    for segment in route:
+        print(segment)
+    # build_map(photos)
 
 
 if __name__ == "__main__":
